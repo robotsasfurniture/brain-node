@@ -6,13 +6,13 @@ from openai import AsyncOpenAI
 from scipy.signal import resample_poly
 from .audio_service import AudioSampler, AudioChunk, AudioProvider
 from .audio_buffer import AudioBuffer, AudioRingBuffer
-from .sound_localization import SoundLocalizer
+from .sound_localization import SoundLocalizer, LocalizationResult
+from .visualization import LocalizationVisualizer
+from .websocket_service import WebSocketProvider, Ros2WebSocketService
 import soundfile as sf
 from .logging_config import setup_logger
 import os
 from datetime import datetime
-from .sound_localization import LocalizationResult
-from .websocket_service import WebSocketProvider, Ros2WebSocketService
 
 # Set up logger
 logger = setup_logger(__name__, log_file="logs/audio_transcription.log")
@@ -31,6 +31,7 @@ class ChatGptService:
         on_transcription: Optional[Callable[[str], None]] = None,
         localizer: Optional[SoundLocalizer] = None,
         websocket_uri: str = "ws://localhost:9090",
+        visualizer: Optional[LocalizationVisualizer] = None,
     ):
         self.audio_provider = audio_provider
         self.audio_queue = asyncio.Queue()
@@ -43,6 +44,7 @@ class ChatGptService:
         self.websocket_service = websocket_service or Ros2WebSocketService(
             uri=websocket_uri
         )
+        self.visualizer = visualizer
 
         # Set up audio buffer
         if audio_buffer is None:
@@ -151,6 +153,10 @@ class ChatGptService:
                             x=mean_x,
                             y=mean_y,
                         )
+
+                        # Update visualization if enabled
+                        if self.visualizer is not None:
+                            self.visualizer.update_plot(location)
                     else:
                         logger.warning("No valid localization results in any segment")
 
@@ -335,6 +341,8 @@ The robot should only respond using these commands. The robot should analyze aud
             if self.connection:
                 await self.connection.close()
             await self.websocket_service.close()
+            if self.visualizer:
+                self.visualizer.close()
             logger.info("Service stopped")
 
 

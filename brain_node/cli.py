@@ -7,6 +7,7 @@ from .sound_localization import SoundLocalizer
 from .audio_service import AudioSampler
 from .audio_transcription import ChatGptService, run_service
 from .websocket_service import Ros2WebSocketService, MockWebSocketService
+from .visualization import LocalizationVisualizer
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -57,6 +58,12 @@ def create_parser() -> argparse.ArgumentParser:
         type=str,
         default="ws://localhost:9090",
         help="WebSocket URI for ROS2 bridge (default: ws://localhost:9090)",
+    )
+
+    parser.add_argument(
+        "--visualize",
+        action="store_true",
+        help="Enable real-time visualization of sound source localization",
     )
 
     return parser
@@ -110,12 +117,16 @@ def main():
             else Ros2WebSocketService(uri=args.websocket_uri)
         )
 
+        # Create visualizer if enabled
+        visualizer = LocalizationVisualizer() if args.visualize else None
+
         # Create the service
         service = ChatGptService(
             audio_provider=audio_sampler,
             websocket_service=websocket_service,
             buffer_duration=args.buffer_duration,
             localizer=SoundLocalizer(model_path="models/model_directivity.pth"),
+            visualizer=visualizer,
         )
 
         print("Starting Brain Node transcription service...")
@@ -126,8 +137,12 @@ def main():
 
     except KeyboardInterrupt:
         print("\nShutting down...")
+        if args.visualize and visualizer:
+            visualizer.close()
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
+        if args.visualize and visualizer:
+            visualizer.close()
         sys.exit(1)
 
 

@@ -9,11 +9,11 @@ readme = "README.md"
 python = ">=3.12"
 sounddevice = "0.5.1"
 numpy = "2.2.3"
-openai = {extras = ["realtime"], version = "^1.65.1"}
+openai = {extras = ["realtime"], version = "1.65.1"}
 torch = "^2.6.0"
 scipy = "^1.15.2"
 soundfile = "^0.13.1"
-websockets = "^12.0"
+matplotlib = "^3.10.1"
 
 
 [build-system]
