@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "brain-node"
+version = "0.1.0"
+description = "Audio processing and transcription service using OpenAI Whisper"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+sounddevice = "0.5.1"
+numpy = "2.2.3"
+openai = {extras = ["realtime"], version = "^1.65.1"}
+torch = "^2.6.0"
+scipy = "^1.15.2"
+soundfile = "^0.13.1"
+websockets = "^12.0"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+brain-node = "brain_node.cli:main"
