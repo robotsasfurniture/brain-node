@@ -260,8 +260,10 @@ class ChatGptService:
             self._loop = asyncio.get_running_loop()
             logger.debug("Got event loop")
 
-            # Connect to WebSocket
+            # Connect to WebSocket and wait for connection
+            logger.info("Connecting to WebSocket...")
             await self.websocket_service.connect()
+            logger.info("WebSocket connection established")
 
             logger.info("Connecting to OpenAI...")
             async with self.client.beta.realtime.connect(

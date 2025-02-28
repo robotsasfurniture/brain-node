@@ -45,19 +45,26 @@ class Ros2WebSocketService(WebSocketProvider):
 
     async def connect(self) -> None:
         """Establish WebSocket connection with reconnection logic."""
+        attempt = 1
         while not self._connected:
             try:
+                logger.info(
+                    f"Attempting to connect to ROS2 WebSocket at {self.uri} (attempt {attempt})"
+                )
                 self.websocket = await websockets.connect(self.uri)
                 self._connected = True
                 self._reconnect_delay = 1  # Reset delay on successful connection
-                logger.info(f"Connected to ROS2 WebSocket at {self.uri}")
+                logger.info(f"Successfully connected to ROS2 WebSocket at {self.uri}")
+                return
             except Exception as e:
-                logger.error(f"Failed to connect to WebSocket: {e}")
+                logger.warning(f"Connection attempt {attempt} failed: {e}")
+                logger.info(f"Retrying in {self._reconnect_delay} seconds...")
                 await asyncio.sleep(self._reconnect_delay)
                 # Exponential backoff with maximum delay
                 self._reconnect_delay = min(
                     self._reconnect_delay * 2, self._max_reconnect_delay
                 )
+                attempt += 1
 
     async def send_location(self, location: LocalizationResult) -> None:
         """Send location data to ROS2 via WebSocket.
@@ -66,27 +73,14 @@ class Ros2WebSocketService(WebSocketProvider):
             location: LocationResult containing angle and distance information
         """
         if not self._connected:
-            try:
-                await self.connect()
-            except Exception as e:
-                logger.error(f"Failed to establish connection: {e}")
-                return
+            logger.error("Cannot send location: WebSocket not connected")
+            return
 
         try:
             # Create ROS2 message format
             message = {
-                "op": "publish",
-                "topic": "/audio/location",
-                "msg": {
-                    "header": {
-                        "frame_id": "base_link",
-                        "stamp": {"sec": 0, "nanosec": 0},
-                    },
-                    "angle": location.angle,
-                    "distance": location.distance,
-                    "x": location.x,
-                    "y": location.y,
-                },
+                "angle": location.angle,
+                "distance": location.distance,
             }
 
             await self.websocket.send(json.dumps(message))
@@ -95,12 +89,13 @@ class Ros2WebSocketService(WebSocketProvider):
             )
 
         except websockets.exceptions.ConnectionClosed:
-            logger.warning("WebSocket connection closed, attempting to reconnect...")
+            logger.warning("WebSocket connection closed")
             self._connected = False
-            await self.connect()
+            raise ConnectionError("WebSocket connection closed")
         except Exception as e:
             logger.error(f"Error sending location data: {e}")
             self._connected = False
+            raise
 
     async def close(self) -> None:
         """Close the WebSocket connection."""
@@ -116,13 +111,22 @@ class Ros2WebSocketService(WebSocketProvider):
 class MockWebSocketService(WebSocketProvider):
     """Mock WebSocket service for testing."""
 
+    def __init__(self):
+        self._connected = False
+
     async def connect(self) -> None:
+        logger.info("Mock WebSocket connecting...")
+        await asyncio.sleep(0.5)  # Simulate connection delay
+        self._connected = True
         logger.info("Mock WebSocket connected")
 
     async def send_location(self, location: LocalizationResult) -> None:
+        if not self._connected:
+            raise ConnectionError("Mock WebSocket not connected")
         logger.info(
             f"Mock sending location: angle={location.angle:.2f}°, distance={location.distance:.2f}m"
         )
 
     async def close(self) -> None:
+        self._connected = False
         logger.info("Mock WebSocket closed")
