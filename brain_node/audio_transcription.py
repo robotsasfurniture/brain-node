@@ -150,8 +150,6 @@ class ChatGptService:
                         location = LocalizationResult(
                             angle=mean_angle,
                             distance=mean_distance,
-                            x=mean_x,
-                            y=mean_y,
                         )
 
                         # Update visualization if enabled

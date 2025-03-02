@@ -79,8 +79,8 @@ class Ros2WebSocketService(WebSocketProvider):
         try:
             # Create ROS2 message format
             message = {
-                "angle": location.angle,
-                "distance": location.distance,
+                "angle": float(location.angle),
+                "distance": float(location.distance),
             }
 
             await self.websocket.send(json.dumps(message))

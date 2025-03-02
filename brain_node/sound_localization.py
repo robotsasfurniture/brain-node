@@ -157,7 +157,7 @@ class SoundLocalizer:
             distance = np.sqrt(x**2 + y**2)
             angle = np.arctan2(y, x) * (180 / np.pi)
 
-            return LocalizationResult(angle=angle, distance=distance, x=x, y=y)
+            return LocalizationResult(angle=angle, distance=distance)
 
         except Exception as e:
             logger.error(f"Error during localization: {e}")
